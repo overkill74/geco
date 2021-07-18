@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+build_pc_*
+*.user
+build-*
