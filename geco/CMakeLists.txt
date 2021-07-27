@@ -11,7 +11,10 @@ find_package (LibXml2 REQUIRED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${LIBXML2_INCLUDE_DIR})
 
 # Source files
-file(GLOB SOURCES "*.cpp")
+file(GLOB SOURCES
+    "*.cpp"
+    "dbase/*.cpp"
+    )
 
 # Build
 add_executable(${MAIN_EXE} ${SOURCES})

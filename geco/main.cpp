@@ -1,7 +1,11 @@
 #include <iostream>
 #include <string>
+#include <list>
+
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
+
+#include "dbase/dbanagrafica.h"
 
 using namespace std;
 
@@ -21,7 +25,8 @@ static void test_create(const string& filename)
     xmlTextWriterStartElement(writer, reinterpret_cast<const xmlChar *>("AnagraficaUtenti"));
 
     xmlTextWriterStartElement(writer, reinterpret_cast<const xmlChar *>("Utente"));
-    xmlTextWriterWriteFormatAttribute(writer, reinterpret_cast<const xmlChar *>("UID"), "jdnckjandvkjds");
+    xmlTextWriterWriteFormatAttribute(writer, reinterpret_cast<const xmlChar *>("UID"), "%s", "jdnckjandvkjds");
+    xmlTextWriterWriteFormatAttribute(writer, reinterpret_cast<const xmlChar *>("UID2"), "%d", 3);
     xmlTextWriterEndAttribute(writer);
 
     xmlTextWriterWriteElement(writer, reinterpret_cast<const xmlChar *>("Nome"), reinterpret_cast<const xmlChar *>("Ivan"));
@@ -145,6 +150,30 @@ static void test_parse(const string& filename)
     xmlFreeParserCtxt(ctxt);
 }
 
+///
+/// \brief anagrafica_create
+/// \param an
+/// \param filename
+///
+static void anagrafica_create(const list<DbAnagrafica*>& an, const string& filename)
+{
+    xmlTextWriterPtr writer;
+    writer = xmlNewTextWriterFilename(filename.c_str(), 0);
+    xmlTextWriterStartDocument(writer, NULL, "UTF-8", NULL);
+
+    //
+    xmlTextWriterStartElement(writer, reinterpret_cast<const xmlChar *>("Anagrafica"));
+
+    for (auto& it: an) {
+        it->writeToXml(writer);
+    }
+
+    xmlTextWriterEndElement(writer);
+
+    xmlTextWriterEndDocument(writer);
+    xmlFreeTextWriter(writer);
+}
+
 
 ///
 /// \brief main
@@ -156,7 +185,56 @@ int main()
 
     LIBXML_TEST_VERSION;
 
-    test_create("test3.xml");
+    list<DbAnagrafica*> m_anagrafica;
+
+    DbAnagrafica ivan;
+    DbAnagrafica eli;
+    DbAnagrafica studio;
+
+
+    ivan.m_uid                = "111";
+    ivan.m_nome               = "Ivan";
+    ivan.m_cognome            = "Zoli";
+    ivan.m_resienza.via       = "Romagna";
+    ivan.m_resienza.civico    = "37";
+    ivan.m_resienza.cap       = "20092";
+    ivan.m_resienza.citta     = "Cinisello Balsamo";
+    ivan.m_resienza.provincia = "MI";
+    ivan.m_codice_fiscale     = "ZLOVNI74A14F704B";
+    ivan.m_nascita_data       = "14/01/1974";
+    ivan.m_nascita_luogo.citta     = "Monza";
+    ivan.m_nascita_luogo.provincia = "MI";
+    ivan.m_telefono           = "3929352801";
+    ivan.m_email              = "ivan@izstudio.it";
+    ivan.m_pec                = "ivan.zoli@ingpec.eu";
+
+    eli.m_uid                = "112";
+    eli.m_nome               = "Elisabetta";
+    eli.m_cognome            = "Palermo";
+    eli.m_resienza.via       = "via XXV Aprile";
+    eli.m_resienza.civico    = "54";
+    eli.m_resienza.cap       = "20812";
+    eli.m_resienza.citta     = "Limbiate";
+    eli.m_resienza.provincia = "MB";
+
+    studio.m_is_pg              = true;
+    studio.m_uid                = "11";
+    studio.m_nome               = "Studiozoli";
+    studio.m_resienza.via       = "Romagna";
+    studio.m_resienza.civico    = "37";
+    studio.m_resienza.cap       = "20092";
+    studio.m_resienza.citta     = "Cinisello Balsamo";
+    studio.m_resienza.provincia = "MI";
+    studio.m_codice_fiscale     = "ZLOVNI74A14F704B";
+    studio.m_piva               = "05238880966";
+    studio.m_codice_id          = "KRRH6B9";
+
+    m_anagrafica.push_back(&ivan);
+    m_anagrafica.push_back(&eli);
+    m_anagrafica.push_back(&studio);
+
+    anagrafica_create(m_anagrafica, "test3.xml");
+    //test_create("test3.xml");
     test_parse("test3.xml");
 
     return 0;
