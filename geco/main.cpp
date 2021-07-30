@@ -5,6 +5,8 @@
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
 
+#include <sqlite3.h>
+
 #include "dbase/dbanagrafica.h"
 
 using namespace std;
@@ -174,6 +176,141 @@ static void anagrafica_create(const list<DbAnagrafica*>& an, const string& filen
     xmlFreeTextWriter(writer);
 }
 
+//////////////////////////////////////////////////////////////////////////////
+static int callback(void* data, int argc, char** argv, char** azColName)
+{
+    int i;
+
+    cout << (const char*)data << endl;
+
+    for (i = 0; i < argc; i++) {
+        cout << azColName[i] << " = " << (argv[i] ? argv[i] : "NULL") << endl;
+    }
+
+    cout << endl;
+    return 0;
+}
+
+///
+/// \brief execute_query
+/// \param db
+/// \param qry
+///
+static void execute_query(sqlite3* db, list<string>& out, const string& query)
+{
+    cout << query << endl;
+
+    char* err_msg = nullptr;
+    string cb_data("QUERY_TEST");
+    int rc = sqlite3_exec(db
+                          , query.c_str()
+                          , callback
+                          , const_cast<void*>(reinterpret_cast<const void*>(cb_data.c_str()))
+                          , nullptr);
+    if (rc != SQLITE_OK) {
+        if (err_msg) {
+            cout << "ERRORE: " << err_msg << endl;
+
+            out.push_back(err_msg);
+        }
+    }
+    sqlite3_free(err_msg);
+}
+
+///
+/// \brief anagrafica_create_sql
+/// \param an
+/// \param filename
+///
+static bool anagrafica_create_sql(const list<DbAnagrafica*>& an, const string& filename)
+{
+    sqlite3* m_sq_db = nullptr;
+
+    int rc = sqlite3_open(filename.c_str(), &m_sq_db);
+    if (rc) {
+        m_sq_db = nullptr;
+        return false;
+    }
+
+    list<string> out;
+    execute_query(
+                m_sq_db, out,
+                "CREATE TABLE Anagrafica ("
+                "Id                INTEGER UNIQUE PRIMARY KEY AUTOINCREMENT,"
+                "Nome              TEXT,"
+                "Cognome           TEXT,"
+                "Telefono          TEXT,"
+                "Numero            INTGER,"
+                "Flag              BOOLEAN"
+                ");"
+    );
+
+    int x=100;
+    int y=100;
+    for (auto& it: an) {
+        execute_query(
+                    m_sq_db, out,
+                    "INSERT INTO Anagrafica "
+                    "(Nome,Cognome,Telefono,Numero,Flag)"
+                    " VALUES ("
+                    "\"" + it->m_nome    + "\","
+                    "\"" + it->m_cognome + "\","
+                    "\"" + it->m_telefono + "\","
+                    "" + to_string(x++) + ","
+                    "\"" + "TRUEXX" + "\""
+                    + ");"
+        );
+    }
+
+    execute_query(
+                m_sq_db, out,
+                "SELECT * FROM Anagrafica;"
+    );
+
+    sqlite3_close(m_sq_db);
+    return true;
+}
+
+///
+/// \brief anagrafica_reader
+/// \param an
+/// \param filename
+///
+static void anagrafica_parser(list<DbAnagrafica*>& an, const string& filename)
+{
+    xmlParserCtxtPtr ctxt;
+    xmlDocPtr doc;
+
+    /* create a parser context */
+    ctxt = xmlNewParserCtxt();
+    if (ctxt == NULL) {
+        fprintf(stderr, "Failed to allocate parser context\n");
+        return;
+    }
+    /* parse the file, activating the DTD validation option */
+    doc = xmlCtxtReadFile(ctxt, filename.c_str(), NULL, XML_PARSE_NOERROR/*XML_PARSE_DTDVALID*/);
+    /* check if parsing succeeded */
+    if (doc == NULL) {
+        fprintf(stderr, "Failed to parse %s\n", filename.c_str());
+    }
+    else
+    {
+        /* check if validation succeeded */
+        if (ctxt->valid == 0) {
+            fprintf(stderr, "Failed to validate %s\n", filename.c_str());
+        }
+        else {
+            xmlNode* root_element = xmlDocGetRootElement(doc);
+            print_element_names(root_element);
+        }
+
+        /* free up the resulting document */
+        xmlFreeDoc(doc);
+    }
+    /* free up the parser context */
+    xmlFreeParserCtxt(ctxt);
+}
+
 
 ///
 /// \brief main
@@ -233,9 +370,14 @@ int main()
     m_anagrafica.push_back(&eli);
     m_anagrafica.push_back(&studio);
 
-    anagrafica_create(m_anagrafica, "test3.xml");
-    //test_create("test3.xml");
-    test_parse("test3.xml");
+    //    anagrafica_create(m_anagrafica, "test3.xml");
+    //    //test_create("test3.xml");
+    //    //test_parse("test3.xml");
+    //    list<DbAnagrafica*> m_anagrafica_r;
+    //    anagrafica_parser(m_anagrafica_r, "test3.xml");
+
+    anagrafica_create_sql(m_anagrafica, "test.db");
+
 
     return 0;
 }

@@ -8,7 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Libraries
 find_package (LibXml2 REQUIRED)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${LIBXML2_INCLUDE_DIR})
+find_package (SQLite3 REQUIRED)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+    ${LIBXML2_INCLUDE_DIR}
+    ${SQLite3_INCLUDE_DIRS}
+    )
 
 # Source files
 file(GLOB SOURCES
@@ -18,4 +22,7 @@ file(GLOB SOURCES
 
 # Build
 add_executable(${MAIN_EXE} ${SOURCES})
-target_link_libraries(${MAIN_EXE} ${LIBXML2_LIBRARIES})
+target_link_libraries(${MAIN_EXE}
+    ${LIBXML2_LIBRARIES}
+    ${SQLite3_LIBRARIES}
+    )
